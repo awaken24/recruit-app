@@ -88,11 +88,6 @@ class EmpresaController extends BaseController
             $empresa->contato_cargo = $request->input('contato_cargo');
             $empresa->contato_telefone = $request->input('contato_telefone');
             $empresa->como_encontrou = $request->input('como_encontrou');
-            // if ($request->hasFile('logo')) {
-            //     $logo = $request->file('logo');
-            //     $logoPath = $logo->store('logos_empresas', 'public');
-            //     $empresa->logo_path = $logoPath;
-            // }
             $empresa->save();
 
             $enderecoData = $request->input('endereco');
