@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
+use App\Helpers\LogHelper;
 use Illuminate\Support\Facades\{DB, Validator, Hash};
 use App\Models\{
     Empresa,
@@ -35,6 +36,7 @@ class EmpresaController extends BaseController
             DB::commit();
 
             $token = auth('api')->login($usuario);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Usuário salvo e autenticado com sucesso.',
@@ -44,9 +46,12 @@ class EmpresaController extends BaseController
                 ],
             ], 201);
 
+            LogHelper::saveLog('save_enterprise', 'Sucesso ao salvar o usuário ' . $token);
+
             return $this->success_response('Usuário salvo com sucesso.');
         } catch (\Exception $exception) {
             DB::rollBack();
+            LogHelper::saveLog('save_enterprise_error', 'Erro ao salvar o usuário '. $exception->getMessage());
             return $this->error_response('Erro ao salvar usuário.', $exception->getMessage());
         }
     }
@@ -55,7 +60,7 @@ class EmpresaController extends BaseController
     {
         try {
             DB::beginTransaction();
-            
+
             // $request->validate(Empresa::$rules);
             $usuario = auth()->user();
             if (!$usuario) {
@@ -76,14 +81,14 @@ class EmpresaController extends BaseController
             $empresa->ano_fundacao = $request->input('ano_fundacao');
             $empresa->numero_funcionarios = $request->input('numero_funcionarios');
             $empresa->politica_remoto = $request->input('politica_remoto');
-            
+
             $empresa->facebook = $request->input('facebook');
             $empresa->twitter = $request->input('twitter');
             $empresa->linkedin = $request->input('linkedin');
             $empresa->instagram = $request->input('instagram');
             $empresa->tiktok = $request->input('tiktok');
             $empresa->youtube = $request->input('youtube');
-            
+
             $empresa->contato_nome = $request->input('contato_nome');
             $empresa->contato_cargo = $request->input('contato_cargo');
             $empresa->contato_telefone = $request->input('contato_telefone');
@@ -105,6 +110,7 @@ class EmpresaController extends BaseController
             $empresa->usuario()->save($usuario);
 
             DB::commit();
+            LogHelper::saveLog('save_enterprise', 'Empresa ' . $empresa->usuario() . ' cadastrada com sucesso.');
             return $this->success_response('Empresa cadastrada.');
         } catch (CustomException $exception) {
             DB::rollBack();

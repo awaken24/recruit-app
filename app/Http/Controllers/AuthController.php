@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Exceptions\CustomException;
+use App\Helpers\LogHelper;
+use App\Models\Usuario;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends BaseController
 {
@@ -32,6 +35,8 @@ class AuthController extends BaseController
                 throw new CustomException('Credenciais inválidas', 401);
             }
 
+            LogHelper::saveLog('login', "Usuário realizou login no sistema.");
+
             return response()->json([
                 'status' => 'success',
                 'user' => auth('api')->user(),
@@ -52,9 +57,11 @@ class AuthController extends BaseController
         try {
             auth('api')->logout();
 
+            LogHelper::saveLog('logout', "Usuário realizou logout do sistema.");
+
             return $this->success_response("Logout realizado com sucesso");
         } catch (\Exception $exception) {
-            return $this->error_response("Erro ao realizar logout", $e->getMessage());
+            return $this->error_response("Erro ao realizar logout", $exception->getMessage());
         }
     }
 

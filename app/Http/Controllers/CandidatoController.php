@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
-use Illuminate\Support\Facades\{DB, Validator};
+use App\Helpers\LogHelper;
+use Illuminate\Support\Facades\{DB, Hash, Validator};
 use App\Models\{
     Candidato,
     Endereco,
@@ -31,9 +32,13 @@ class CandidatoController extends BaseController
             $usuario->save();
 
             DB::commit();
+
+            LogHelper::saveLog('create_user', "Usuário com e-mail { $usuario->email } foi criado com sucesso.");
+
             return $this->success_response('Usuário salvo com sucesso.');
         } catch (\Exception $exception) {
             DB::rollBack();
+            LogHelper::saveLog('error_create_user', "Erro ao salvar usuário: {$exception->getMessage()}");
             return $this->error_response('Erro ao salvar usuário.', $exception->getMessage());
         }
     }
@@ -48,7 +53,7 @@ class CandidatoController extends BaseController
                 'data_nascimento' => 'nullable|date',
                 'cpf' => 'nullable|string|max:14|unique:candidatos,cpf',
                 'genero' => 'nullable|string|max:20',
-                
+
                 'endereco.cep' => 'required|string|max:9',
                 'endereco.logradouro' => 'required|string|max:255',
                 'endereco.numero' => 'required|string|max:20',
@@ -86,13 +91,16 @@ class CandidatoController extends BaseController
             ]);
 
             DB::commit();
+            LogHelper::saveLog('create_candidate', "Candidato com nome { $candidato->nome_completo } foi cadastrado com sucesso.");
             return $this->success_response('Candidato cadastrado.');
 
         } catch (CustomException $exception) {
             DB::rollBack();
+            LogHelper::saveLog('error_create_candidate', "Erro ao salvar candidato: {$exception->getMessage()}");
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $exception) {
             DB::rollBack();
+            LogHelper::saveLog('error_create_candidate', $exception->getMessage());
             return $this->error_response('Erro ao cadastrar candidato.', $exception->getMessage());
         }
     }
