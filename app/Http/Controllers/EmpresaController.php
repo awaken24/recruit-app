@@ -13,11 +13,28 @@ use App\Models\{
 
 class EmpresaController extends BaseController
 {
+    public function show($id)
+    {
+        try {
+            $company = Empresa::find($id);
+
+            if (!$company) {
+                throw new CustomException('Empresa não encontrada', 404);
+            }
+
+            return $this->success_data_response(
+                'Dados da empresa recuperados com sucesso',
+                $company->toArrayProfile()
+            );
+        } catch (CustomException $exception) {
+            $this->error_response($exception->getMessage());
+        } catch (\Exception $exception) {
+            return $this->error_response('Erro ao consultar empresa.', $exception->getMessage());
+        }
+    }
+
     public function salvarUsuario(Request $request)
     {
-
-        // return $this->error_response("Chegou certo dados: {$request}");
-
         try {
             DB::beginTransaction();
 
@@ -56,7 +73,6 @@ class EmpresaController extends BaseController
         try {
             DB::beginTransaction();
             
-            // $request->validate(Empresa::$rules);
             $usuario = auth()->user();
             if (!$usuario) {
                 throw new CustomException("Usuário não autenticado.", 401);
@@ -111,7 +127,7 @@ class EmpresaController extends BaseController
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $exception) {
             DB::rollBack();
-            return $this->error_response('Erro ao cadastrar candidato.', $exception->getMessage());
+            return $this->error_response('Erro ao cadastrar empresa.', $exception->getMessage());
         }
     }
 }

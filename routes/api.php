@@ -2,9 +2,13 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CandidatoController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\{
+    CandidatoController,
+    AuthController,
+    EmpresaController,
+    HabilidadeController,
+    VagaController
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -19,9 +23,21 @@ use App\Http\Controllers\EmpresaController;
 
 Route::post('/candidatos', [CandidatoController::class, 'salvar']);
 // Route::post('/empresas/register', [EmpresaController::class, 'salvar']);
-Route::post('auth/empresas/registerUsuario', [EmpresaController::class, 'salvarUsuario']);
 
+
+
+Route::post('auth/empresas/registerUsuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
+Route::get('/empresas/profile/{id}', [EmpresaController::class, 'show'])->middleware('auth:api');
+
+
+Route::get('/vagas/empresa', [VagaController::class, 'buscarVagasPorEmpresa'])->middleware('auth:api');
+Route::post('/vagas/register', [VagaController::class, 'salvar'])->middleware('auth:api');
+Route::get('/vagas', [VagaController::class, 'listagemVagas']);
+
+
+Route::get('/habilidades', [HabilidadeController::class, 'index']);
+
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);

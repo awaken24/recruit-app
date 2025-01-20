@@ -12,6 +12,13 @@ class Habilidade extends Model
     protected $fillable = [
         'id',
         'nome',
-        'descricao',
     ];
+
+    public function toArray() 
+    {
+        return [
+            'id' => $this->id,
+            'nome' => $this->nome
+        ];
+    }
 }
