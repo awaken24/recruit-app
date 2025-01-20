@@ -28,4 +28,23 @@ class BaseController extends Controller
         return response()->json($response, $status);
     }
 
+    /**
+     * @param string $message
+     * @param mixed $data
+     * @param int $status
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function success_data_response(string $message, $data = null, int $status = 200)
+    {
+        $response = [
+            'status' => 'success',
+            'message' => $message,
+        ];
+
+        if ($data !== null) {
+            $response['data'] = $data;
+        }
+
+        return response()->json($response, $status);
+    }
 }

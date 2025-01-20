@@ -10,11 +10,18 @@ class Requisito extends Model
     use HasFactory;
 
     protected $fillable = [
-        'id',
         'vaga_id',
         'habilidade_id',
-        'experiencia_min',
-        'experiencia_max',
-        'obrigatorio',
+        'tempo_experiencia'
     ];
+
+    public function vaga()
+    {
+        return $this->belongsTo(Vaga::class);
+    }
+
+    public function habilidade()
+    {
+        return $this->belongsTo(Habilidade::class);
+    }
 }
