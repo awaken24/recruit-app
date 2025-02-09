@@ -152,6 +152,12 @@ class VagaController extends BaseController
         }
     }
 
+    public function show() 
+    {
+        return $this->success_response("Deu certo");
+    }
+
+
     private function calcularCompatibilidade($candidato, $vaga)
     {
         return rand(0, 100);
