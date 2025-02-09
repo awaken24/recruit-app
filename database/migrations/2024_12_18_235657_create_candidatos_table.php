@@ -15,12 +15,23 @@ class CreateCandidatosTable extends Migration
     {
         Schema::create('candidatos', function (Blueprint $table) {
             $table->id();
-            $table->string('nome_completo')->nullable();
+            $table->string('nome');
+            $table->string('sobrenome');
+            $table->string('cpf', 14)->unique();
+            $table->text('descricao')->nullable();
+            $table->string('experienceLevel')->nullable();
+            $table->string('foco_carreira')->nullable();
+            $table->string('gitHub')->nullable();
+            $table->string('linkedIn')->nullable();
+            $table->string('nivelIngles')->nullable();
+            $table->boolean('pcd')->default(false);
+            $table->string('salario_desejado')->nullable();
+            $table->string('status_busca')->nullable();
             $table->string('telefone')->nullable();
-            $table->date('data_nascimento')->nullable();
-            $table->string('cpf', 14)->unique()->nullable();
-            $table->string('genero')->nullable();
-            $table->string('email')->unique()->nullable();
+            $table->string('tipo_contrato')->nullable();
+            $table->string('tipo_empresa')->nullable();
+            $table->string('titulo')->nullable();
+            $table->boolean('trabalho_remoto')->default(false);
             $table->timestamps();
         });
     }
