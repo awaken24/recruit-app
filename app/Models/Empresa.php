@@ -89,4 +89,12 @@ class Empresa extends Model
             'como_encontrou' => $this->como_encontrou
         ];
     }
+
+    public function toArray()
+    {
+        $data = parent::toArray();
+         
+        unset($data['created_at'], $data['updated_at']);
+        return $data;
+    }
 }

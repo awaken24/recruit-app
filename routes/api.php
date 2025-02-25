@@ -34,6 +34,7 @@ Route::get('/vagas/empresa', [VagaController::class, 'buscarVagasPorEmpresa'])->
 Route::post('/vagas/register', [VagaController::class, 'salvar'])->middleware('auth:api');
 Route::get('/vagas', [VagaController::class, 'listagemVagas']);
 Route::get('/vagas/{vagaId}', [VagaController::class, 'show']);
+Route::post('/vagas/candidatura', [VagaController::class, 'candidatura'])->middleware('auth:api');
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
 

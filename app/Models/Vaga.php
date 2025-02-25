@@ -50,7 +50,7 @@ class Vaga extends Model
         'bonus' => 'boolean'
     ];
 
-    public function requisitos()
+    public function requisitosHabilidades()
     {
         return $this->hasMany(Requisito::class);
     }
@@ -63,8 +63,8 @@ class Vaga extends Model
     public function toArray()
     {
         $data = parent::toArray();
-        $data['empresa'] = $this->empresa ? $this->empresa->toArray() : null; 
-
+        $data['empresa'] = $this->empresa ? $this->empresa->toArray() : null;
+        
         unset($data['created_at'], $data['updated_at']);
         return $data;
     }

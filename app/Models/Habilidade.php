@@ -14,6 +14,11 @@ class Habilidade extends Model
         'nome',
     ];
 
+    public function requisitos()
+    {
+        return $this->hasMany(Requisito::class);
+    }
+
     public function toArray() 
     {
         return [
