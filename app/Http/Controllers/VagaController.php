@@ -110,10 +110,10 @@ class VagaController extends BaseController
             $response = ['vagas' => [], 'habilidades' => []];
 
             $habilidadeId = request('habilidade');
-            $vagasQuery = Vaga::with(['requisitos.habilidade', 'empresa'])->where('status', 'ativa');
+            $vagasQuery = Vaga::with(['requisitosHabilidades.habilidade', 'empresa'])->where('status', 'ativa');
 
             if ($habilidadeId) {
-                $vagasQuery->whereHas('requisitos', function ($query) use ($habilidadeId) {
+                $vagasQuery->whereHas('requisitosHabilidades', function ($query) use ($habilidadeId) {
                     $query->where('habilidade_id', $habilidadeId);
                 });
             }
@@ -132,14 +132,14 @@ class VagaController extends BaseController
 
             $vagas->transform(function ($vaga) {
                 $vaga = $vaga->toArray();
-                $vaga['habilidades'] = collect($vaga['requisitos'])->map(function ($requisito) {
+                $vaga['habilidades'] = collect($vaga['requisitos_habilidades'])->map(function ($requisito) {
                     return [
                         'nome' => $requisito['habilidade']['nome'],
                         'tempo_experiencia' => $requisito['tempo_experiencia']
                     ];
                 })->toArray();
                 
-                unset($vaga['requisitos']);
+                unset($vaga['requisitos_habilidades']);
                 return $vaga;
             });
 
@@ -152,11 +152,21 @@ class VagaController extends BaseController
         }
     }
 
-    public function show() 
+    public function show($id)
     {
-        return $this->success_response("Deu certo");
+        $vaga = Vaga::with('requisitosHabilidades.habilidade')->find($id);
+
+        if (!$vaga) {
+            return $this->error_response("Vaga não encontrada.", null, 404);
+        }
+
+        return $this->success_data_response("Vaga encontrada", $vaga);
     }
 
+    public function candidatura()
+    {
+        return response()->json("Deu certo", 200);
+    }
 
     private function calcularCompatibilidade($candidato, $vaga)
     {
