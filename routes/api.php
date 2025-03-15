@@ -24,6 +24,7 @@ use App\Http\Controllers\{
 Route::post('/candidatos', [CandidatoController::class, 'salvar']);
 Route::post('auth/candidato/register/usuario', [CandidatoController::class, 'salvarUsuario']);
 Route::post('/candidato/register', [CandidatoController::class, 'salvar'])->middleware('auth:api');
+Route::post('/candidato/dashboard', [CandidatoController::class, 'dashboard'])->middleware('auth:api');
 
 Route::post('auth/empresas/register/usuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
@@ -37,7 +38,6 @@ Route::get('/vagas/{vagaId}', [VagaController::class, 'show']);
 Route::post('/vagas/candidatura', [VagaController::class, 'candidatura'])->middleware('auth:api');
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
-
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);

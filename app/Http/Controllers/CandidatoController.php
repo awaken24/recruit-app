@@ -53,6 +53,33 @@ class CandidatoController extends BaseController
         }
     }
 
+    public function dashboard()
+    {
+        try {
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+
+            if ($usuario->usuarioable_type !== 'App\Models\Candidato') {
+                throw new CustomException('Usuário não é um candidato', 403);
+            }
+
+            $candidato = $usuario->usuarioable;
+            $response = [
+                'candidato' => $candidato,
+                'qtdCandidaturas' => 0,
+                'qtdOprtunidades' => 0
+            ];
+
+            return $this->success_data_response("Dashboard Carregado", $response);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->error_response('Erro de validação.', $e->errors());
+        } catch (\Exception $e) {
+            return $this->error_response('Erro ao salvar usuário.', $e->getMessage());
+        }
+    }
+
     public function salvar(Request $request)
     {
         try {
@@ -123,6 +150,11 @@ class CandidatoController extends BaseController
             $endereco->enderecavel_type = Candidato::class;
             $endereco->enderecavel_id = $candidato->id;
             $endereco->save();
+
+            $usuario->nome = $request->nome;
+            $usuario->usuarioable_id = $candidato->id;
+            $usuario->perfil_completo = true;
+            $usuario->save();
 
             if ($request->has('experiencias')) {
                 foreach ($request->input('experiencias') as $experienciaData) {
