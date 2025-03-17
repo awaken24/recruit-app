@@ -12,6 +12,18 @@ class Habilidade extends Model
     protected $fillable = [
         'id',
         'nome',
-        'descricao',
     ];
+
+    public function requisitos()
+    {
+        return $this->hasMany(Requisito::class);
+    }
+
+    public function toArray() 
+    {
+        return [
+            'id' => $this->id,
+            'nome' => $this->nome
+        ];
+    }
 }

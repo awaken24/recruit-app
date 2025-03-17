@@ -4,20 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Endereco;
+use App\Models\{
+    Endereco,
+    Experiencia
+};
 
 class Candidato extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'usuario_id',
-        'nome_completo',
-        'email',
-        'telefone',
-        'data_nascimento',
+        'nome',
+        'sobrenome',
         'cpf',
-        'genero',
+        'descricao',
+        'experienceLevel',
+        'foco_carreira',
+        'gitHub',
+        'linkedIn',
+        'nivelIngles',
+        'pcd',
+        'salario_desejado',
+        'status_busca',
+        'telefone',
+        'tipo_contrato',
+        'tipo_empresa',
+        'titulo',
+        'trabalho_remoto',
     ];
 
     public function endereco()
@@ -29,4 +42,14 @@ class Candidato extends Model
     {
         return $this->morphOne(Usuario::class, 'usuarioable');
     }
+
+    public function experiencias()
+    {
+        return $this->hasMany(Experiencia::class);
+    }
+
+    public function candidatura(){
+        return $this->hasMany(Candidatura::class, 'candidato_id');
+    }
+
 }

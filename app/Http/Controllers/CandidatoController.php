@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
-use App\Helpers\LogHelper;
 use Illuminate\Support\Facades\{DB, Hash, Validator};
 use App\Models\{
     Candidato,
     Endereco,
-    Usuario
+    Usuario,
+    HabilidadeCandidato,
+    Experiencia,
+    LogErrors,
+    LogSuccess
 };
 
 class CandidatoController extends BaseController
@@ -20,11 +23,6 @@ class CandidatoController extends BaseController
         try {
             DB::beginTransaction();
 
-            // $request->validate([
-            //     'email' => 'required|email|unique:usuarios,email',
-            //     'password' => 'required|min:8|confirmed',
-            // ]);
-
             $usuario = new Usuario();
             $usuario->email = $request->input('email');
             $usuario->password = Hash::make($request->input('password'));
@@ -33,13 +31,106 @@ class CandidatoController extends BaseController
 
             DB::commit();
 
-            LogHelper::saveLog('create_user', "Usuário com e-mail { $usuario->email } foi criado com sucesso.");
+            $token = auth('api')->login($usuario);
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'O usuário foi salvo com sucesso!',
+                'user_id' => $usuario->id
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Usuário salvo e autenticado com sucesso.',
+                'data' => [
+                    'token' => $token,
+                    'user' => $usuario,
+                ],
+            ], 201);
 
             return $this->success_response('Usuário salvo com sucesso.');
         } catch (\Exception $exception) {
             DB::rollBack();
-            LogHelper::saveLog('error_create_user', "Erro ao salvar usuário: {$exception->getMessage()}");
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
             return $this->error_response('Erro ao salvar usuário.', $exception->getMessage());
+            $token = auth('api')->login($usuario);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Usuário salvo e autenticado com sucesso.',
+                'data' => [
+                    'token' => $token,
+                    'user' => $usuario,
+                ],
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $e->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
+            return $this->error_response('Erro de validação.', $e->errors());
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $e->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+            
+            return $this->error_response('Erro ao salvar usuário.', $e->getMessage());
+        }
+    }
+
+    public function dashboard(Request $request)
+    {
+        try {
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+
+            if ($usuario->usuarioable_type !== 'App\Models\Candidato') {
+                throw new CustomException('Usuário não é um candidato', 403);
+            }
+
+            $candidato = $usuario->usuarioable;
+            $response = [
+                'candidato' => $candidato,
+                'qtdCandidaturas' => 0,
+                'qtdOprtunidades' => 0
+            ];
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Dashboard carregado com sucesso!',
+                'user_id' => $usuario->id
+            ]);
+
+            return $this->success_data_response("Dashboard Carregado", $response);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $e->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+            return $this->error_response('Erro de validação.', $e->errors());
+        } catch (\Exception $e) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $e->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+            return $this->error_response('Erro ao salvar usuário.', $e->getMessage());
         }
     }
 
@@ -63,44 +154,102 @@ class CandidatoController extends BaseController
                 'endereco.estado' => 'required|string|max:2',
             ]);
 
-            if ($validator->fails()) {
-                throw new CustomException("Erro de validação: {$validator->errors()}.", 422);
-            }
-
             DB::beginTransaction();
 
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+
             $candidato = new Candidato();
-            $candidato->nome_completo = $request->input('nome_completo');
+            $candidato->nome = $request->input('nome');
+            $candidato->sobrenome = $request->input('sobrenome');
             $candidato->telefone = $request->input('telefone');
-            $candidato->data_nascimento = $request->input('data_nascimento');
             $candidato->cpf = $request->input('cpf');
-            $candidato->genero = $request->input('genero');
+            $candidato->titulo = $request->input('titulo');
+            $candidato->nivelIngles = $request->input('nivelIngles');
+            $candidato->descricao = $request->input('descricao');
+            $candidato->linkedin = $request->input('linkedin');
+            $candidato->github = $request->input('github');
+            $candidato->foco_carreira = $request->input('foco_carreira');
+            $candidato->experienceLevel = $request->input('experienceLevel');
+            $candidato->salario_desejado = $request->input('salario_desejo');
+            $candidato->tipo_empresa = $request->input('tipo_empresa');
+            $candidato->tipo_contrato = $request->input('tipo_contrato');
+            $candidato->status_busca = $request->input('status_busca');
+            $candidato->trabalho_remoto = $request->input('trabalho_remoto') === 'sim';
+            $candidato->pcd = $request->input('pcd') === 'sim';
             $candidato->save();
 
-            $enderecoData = $request->input('endereco');
+            foreach ($request->input('habilidades') as $habilidade) {
+                $habilidadeCandidato = new HabilidadeCandidato();
+                $habilidadeCandidato->candidato_id = $candidato->id;
+                $habilidadeCandidato->habilidade_id = $habilidade['habilidade_id'];
+                $habilidadeCandidato->tempo_experiencia = $habilidade['nivel_experiencia'];
+                $habilidadeCandidato->save();
+            }
+
             $endereco = new Endereco();
-            $endereco->fill($enderecoData);
+            $endereco->cep = $request->input('endereco.cep');
+            $endereco->estado = $request->input('endereco.estado');
+            $endereco->cidade = $request->input('endereco.cidade');
+            $endereco->bairro = $request->input('endereco.bairro');
+            $endereco->logradouro = $request->input('endereco.logradouro');
+            $endereco->numero = $request->input('endereco.numero');
+            $endereco->complemento = $request->input('endereco.complemento');
             $endereco->enderecavel_type = Candidato::class;
             $endereco->enderecavel_id = $candidato->id;
             $endereco->save();
 
-            $candidato->usuario()->create([
-                'email' => $request->email,
-                'password' => bcrypt($request->password ?? str_random(10)),
-                'nome' => $request->input('nome_completo'),
-            ]);
+            $usuario->nome = $request->nome;
+            $usuario->usuarioable_id = $candidato->id;
+            $usuario->perfil_completo = true;
+            $usuario->save();
+
+            if ($request->has('experiencias')) {
+                foreach ($request->input('experiencias') as $experienciaData) {
+                    $experiencia = new Experiencia();
+                    $experiencia->empresa = $experienciaData['empresa'];
+                    $experiencia->cargo = $experienciaData['cargo'];
+                    $experiencia->mesInicio = $experienciaData['mesInicio'];
+                    $experiencia->anoInicio = $experienciaData['anoInicio'];
+                    $experiencia->mesFim = $experienciaData['mesFim'] ?? null;
+                    $experiencia->anoFim = $experienciaData['anoFim'] ?? null;
+                    $experiencia->trabalhoAtual = $experienciaData['trabalhoAtual'] ?? false;
+                    $experiencia->descricao = $experienciaData['descricao'] ?? null;
+                    $experiencia->candidato_id = $candidato->id;
+                    $experiencia->save();
+                }
+            }
 
             DB::commit();
-            LogHelper::saveLog('create_candidate', "Candidato com nome { $candidato->nome_completo } foi cadastrado com sucesso.");
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Candidato(a) cadastrado(a) com sucesso!',
+                'user_id' => $usuario->id
+            ]);
             return $this->success_response('Candidato cadastrado.');
 
         } catch (CustomException $exception) {
             DB::rollBack();
-            LogHelper::saveLog('error_create_candidate', "Erro ao salvar candidato: {$exception->getMessage()}");
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $exception) {
             DB::rollBack();
-            LogHelper::saveLog('error_create_candidate', $exception->getMessage());
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response('Erro ao cadastrar candidato.', $exception->getMessage());
         }
     }
