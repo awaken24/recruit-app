@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\{
-    Endereco, 
-    Experiencia 
+    Endereco,
+    Experiencia
 };
 
 class Candidato extends Model
@@ -47,4 +47,9 @@ class Candidato extends Model
     {
         return $this->hasMany(Experiencia::class);
     }
+
+    public function candidatura(){
+        return $this->hasMany(Candidatura::class, 'candidato_id');
+    }
+
 }

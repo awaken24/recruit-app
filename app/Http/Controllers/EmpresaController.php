@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\{DB, Validator, Hash};
 use App\Models\{
     Empresa,
     Endereco,
+    LogErrors,
+    LogSuccess,
     Usuario
 };
 
 class EmpresaController extends BaseController
 {
-    public function show($id)
+    public function show($id, Request $request)
     {
         try {
             $company = Empresa::find($id);
@@ -22,13 +24,31 @@ class EmpresaController extends BaseController
                 throw new CustomException('Empresa não encontrada', 404);
             }
 
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Dados da empresa recuperados com succeso.',
+                'user_id' => auth()->id()
+            ]);
+
             return $this->success_data_response(
                 'Dados da empresa recuperados com sucesso',
                 $company->toArrayProfile()
             );
         } catch (CustomException $exception) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+
             $this->error_response($exception->getMessage());
         } catch (\Exception $exception) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+
             return $this->error_response('Erro ao consultar empresa.', $exception->getMessage());
         }
     }
@@ -37,11 +57,6 @@ class EmpresaController extends BaseController
     {
         try {
             DB::beginTransaction();
-
-            // $request->validate([
-            //     'email' => 'required|email|unique:usuarios,email',
-            //     'password' => 'required|min:8|confirmed',
-            // ]);
 
             $usuario = new Usuario();
             $usuario->email = $request->input('email');
@@ -52,30 +67,48 @@ class EmpresaController extends BaseController
             DB::commit();
 
             $token = auth('api')->login($usuario);
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Usuário como empresa foi salvo com sucesso!',
+                'user_id' => $usuario->id
+            ]);
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Usuário salvo e autenticado com sucesso.',
+                'message' => 'Usuário como empresa salvo e autenticado com sucesso.',
                 'data' => [
                     'token' => $token,
                     'user' => $usuario,
                 ],
             ], 201);
 
-            return $this->success_response('Usuário salvo com sucesso.');
         } catch (\Exception $exception) {
             DB::rollBack();
-            return $this->error_response('Erro ao salvar usuário.', $exception->getMessage());
+
+            $userId = isset($usuario) ? $usuario->id : null;
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $userId
+            ]);
+
+            return $this->error_response('Erro ao salvar usuário como empresa.', $exception->getMessage());
         }
     }
 
     public function salvar(Request $request)
     {
+
         try {
             DB::beginTransaction();
-            
+
+            // $request->validate(Empresa::$rules);
+
             $usuario = auth()->user();
             if (!$usuario) {
-                throw new CustomException("Usuário não autenticado.", 401);
+                throw new CustomException("Usuário como empresa não autenticado.", 401);
             }
 
             $empresa = new Empresa();
@@ -92,14 +125,14 @@ class EmpresaController extends BaseController
             $empresa->ano_fundacao = $request->input('ano_fundacao');
             $empresa->numero_funcionarios = $request->input('numero_funcionarios');
             $empresa->politica_remoto = $request->input('politica_remoto');
-            
+
             $empresa->facebook = $request->input('facebook');
             $empresa->twitter = $request->input('twitter');
             $empresa->linkedin = $request->input('linkedin');
             $empresa->instagram = $request->input('instagram');
             $empresa->tiktok = $request->input('tiktok');
             $empresa->youtube = $request->input('youtube');
-            
+
             $empresa->contato_nome = $request->input('contato_nome');
             $empresa->contato_cargo = $request->input('contato_cargo');
             $empresa->contato_telefone = $request->input('contato_telefone');
@@ -121,12 +154,33 @@ class EmpresaController extends BaseController
             $empresa->usuario()->save($usuario);
 
             DB::commit();
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Empresa cadastrada com sucesso',
+                'user_id' => $usuario->id
+            ]);
+
             return $this->success_response('Empresa cadastrada.');
         } catch (CustomException $exception) {
             DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $exception) {
             DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response('Erro ao cadastrar empresa.', $exception->getMessage());
         }
     }

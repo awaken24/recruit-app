@@ -39,6 +39,7 @@ Route::post('/vagas/candidatura', [VagaController::class, 'candidatura'])->middl
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
 
+
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);

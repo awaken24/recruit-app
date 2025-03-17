@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CandidaturaException;
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,9 @@ use App\Models\{
     Empresa,
     Vaga,
     Requisito,
-    Habilidade
+    Habilidade,
+    LogErrors,
+    LogSuccess
 };
 
 class VagaController extends BaseController
@@ -43,7 +46,6 @@ class VagaController extends BaseController
             $vaga->faixa_salarial = $request->input('faixa_salarial');
             $vaga->divulgar_salario = $request->input('divulgar_salario');
             $vaga->empresa_id = $empresa->id;
-            
             $vaga->vale_refeicao = $request->input('beneficios.vale_refeicao', false);
             $vaga->vale_alimentacao = $request->input('beneficios.vale_alimentacao', false);
             $vaga->vale_transporte = $request->input('beneficios.vale_transporte', false);
@@ -53,7 +55,6 @@ class VagaController extends BaseController
             $vaga->vale_estacionamento = $request->input('beneficios.vale_estacionamento', false);
             $vaga->academia_gympass = $request->input('beneficios.academia_gympass', false);
             $vaga->bonus = $request->input('beneficios.bonus', false);
-            
             $vaga->save();
 
             foreach ($request->input('habilidadesRequeridas') as $habilidade) {
@@ -65,12 +66,33 @@ class VagaController extends BaseController
             }
 
             DB::commit();
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Vaga criada com sucesso',
+                'user_id' => $usuario->id
+            ]);
+
             return $this->success_response('Vaga criada com sucesso.', 201);
         } catch (CustomException $exception) {
             DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response($exception->getMessage(), null, 500);
         } catch (\Exception $exception) {
             DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => $usuario->id ?? null
+            ]);
+
             return $this->error_response('Não foi possivel criar a vaga.', $exception->getMessage(), 500);
         }
     }
@@ -83,27 +105,45 @@ class VagaController extends BaseController
             if ($user->usuarioable_type !== 'App\Models\Empresa') {
                 throw new CustomException('Usuário não é uma empresa', 403);
             }
-    
+
             $empresaId = $user->usuarioable_id;
-    
+
             $status = $request->input('status');
             $query = Vaga::where('empresa_id', $empresaId);
-    
+
             if (!is_null($status)) {
                 $query->where('status', $status);
             }
-    
+
             $vagas = $query->get();
-            
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Vagas obtidas com sucesso!',
+                'user_id' => $user->id
+            ]);
+
             return $this->success_data_response('Vagas obtidas', $vagas);
         } catch (CustomException $exception) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
             return $this->error_response($exception->getMessage(), null, 500);
         } catch (\Exception $exception) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
             return $this->error_response('Não foi possivel buscar as vagas.', $exception->getMessage(), 500);
         }
     }
 
-    public function listagemVagas()
+    public function listagemVagas(Request $request)
     {
         try {
             $user = Auth::user();
@@ -122,8 +162,8 @@ class VagaController extends BaseController
 
             if ($user && $user->usuarioable_type === 'App\Models\Candidato') {
                 $candidato = $user->usuarioable;
-                
-                if ($candidato->perfil_preenchido) { 
+
+                if ($candidato->perfil_preenchido) {
                     foreach ($vagas as $vaga) {
                         $vaga->compatibilidade = $this->calcularCompatibilidade($candidato, $vaga);
                     }
@@ -138,7 +178,6 @@ class VagaController extends BaseController
                         'tempo_experiencia' => $requisito['tempo_experiencia']
                     ];
                 })->toArray();
-                
                 unset($vaga['requisitos_habilidades']);
                 return $vaga;
             });
@@ -146,8 +185,19 @@ class VagaController extends BaseController
             $response['vagas'] = $vagas;
             $response['habilidades'] = Habilidade::orderBy('nome')->get();
 
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Vagas ativas foram obtidas com sucesso!',
+                'user_id' => Auth::id() ?? null
+            ]);
+
             return $this->success_data_response('Vagas ativas obtidas', $response);
         } catch (\Exception $exception) {
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
             return $this->error_response('Não foi possível buscar as vagas ativas.', $exception->getMessage(), 500);
         }
     }
@@ -163,9 +213,72 @@ class VagaController extends BaseController
         return $this->success_data_response("Vaga encontrada", $vaga);
     }
 
-    public function candidatura()
-    {
-        return response()->json("Deu certo", 200);
+    public function candidatura(Request $request){
+        try{
+            $usuario = Auth::user();
+            if(!$usuario){
+                throw CandidaturaException::usuarioNaoAutenticado();
+            }
+
+            if($usuario->usuarioable_type !== 'App\Models\Candidato'){
+                throw CandidaturaException::apenasCandidato();
+            }
+
+            $candidato = $usuario->usuarioable;
+
+            if(!$candidato || !$candidato instanceof \App\Models\Candidato){
+                throw CandidaturaException::apenasCandidato();
+            }
+
+            $vagaId = $request->input('vaga_id');
+            if(!$vagaId){
+                throw new CustomException("O ID da vaga é obrigatório", 400);
+            }
+
+            $vaga = Vaga::where('id', $vagaId)->where('status', 'ativa')->first();
+            if(!$vaga){
+                throw CandidaturaException::vagaNaoEncontrada();
+            }
+
+            $candidaturaExistente = DB::table('candidaturas')
+                ->where('candidato_id', $candidato->id)
+                ->where('vaga_id', $vagaId)
+                ->exists();
+
+            if($candidaturaExistente){
+                throw CandidaturaException::candidaturaJaRealizada();
+            }
+
+            $candidato->candidatura()->create([
+                'vaga_id' => $vagaId,
+                'empresa_id' => $vaga->empresa_id,
+                'candidato_id' => $candidato->id
+            ]);
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Candidatura realizada com sucesso',
+                'user_id' => $usuario->id
+            ]);
+
+            return $this->success_response('Candidatura realizada com sucesso.', 201);
+        } catch(CustomException | CandidaturaException $exception){
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch(\Exception $exception){
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->error_response('Não foi possível realizar a candidatura', $exception->getMessage(), 500);
+        }
     }
 
     private function calcularCompatibilidade($candidato, $vaga)
