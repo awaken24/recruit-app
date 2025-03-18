@@ -110,27 +110,11 @@ class CandidatoController extends BaseController
                 'qtdOprtunidades' => 0
             ];
 
-            LogSuccess::create([
-                'route' => $request->url(),
-                'success_message' => 'Dashboard carregado com sucesso!',
-                'user_id' => $usuario->id
-            ]);
-
             return $this->success_data_response("Dashboard Carregado", $response);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $e->getMessage(),
-                'user_id' => $usuario->id ?? null
-            ]);
-            return $this->error_response('Erro de validação.', $e->errors());
+        } catch (CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $e) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $e->getMessage(),
-                'user_id' => $usuario->id ?? null
-            ]);
-            return $this->error_response('Erro ao salvar usuário.', $e->getMessage());
+            return $this->error_response('Erro ao carregar dashboard.', $e->getMessage());
         }
     }
 
