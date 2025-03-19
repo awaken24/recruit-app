@@ -86,7 +86,7 @@ class CandidatoController extends BaseController
                 'error_message' => $e->getMessage(),
                 'user_id' => $usuario->id ?? null
             ]);
-            
+
             return $this->error_response('Erro ao salvar usuário.', $e->getMessage());
         }
     }
@@ -104,9 +104,12 @@ class CandidatoController extends BaseController
             }
 
             $candidato = $usuario->usuarioable;
+
+            $qtdCandidaturas = $candidato->candidatura()->count();
+
             $response = [
                 'candidato' => $candidato,
-                'qtdCandidaturas' => 0,
+                'qtdCandidaturas' => $qtdCandidaturas,
                 'qtdOprtunidades' => 0
             ];
 
