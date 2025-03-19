@@ -50,7 +50,8 @@ class AuthController extends BaseController
                     'id' => $user->id,
                     'nome' => $user->nome,
                     'email' => $user->email,
-                    'usuarioable_type' => $user->usuarioable_type
+                    'usuarioable_type' => $user->usuarioable_type,
+                    'perfil_completo' => $user->perfil_completo
                 ],
                 'access_token' => $token,
                 'token_type' => 'bearer',
