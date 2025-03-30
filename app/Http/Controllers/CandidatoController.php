@@ -166,24 +166,35 @@ class CandidatoController extends BaseController
             $candidato->status_busca = $request->input('status_busca');
             $candidato->trabalho_remoto = $request->input('trabalho_remoto') === 'sim';
             $candidato->pcd = $request->input('pcd') === 'sim';
+
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');   
+                $nomeArquivo = 'logo_' . time() . '.' . $logo->getClientOriginalExtension();
+                $caminho = $logo->storeAs('public/logos', $nomeArquivo);
+                $candidato->foto_perfil = 'storage/logos/' . $nomeArquivo;
+            }
+
             $candidato->save();
 
-            foreach ($request->input('habilidades') as $habilidade) {
+            $habilidades = json_decode($request->input('habilidades'), true);
+            foreach ($habilidades as $habilidade) {
                 $habilidadeCandidato = new HabilidadeCandidato();
                 $habilidadeCandidato->candidato_id = $candidato->id;
                 $habilidadeCandidato->habilidade_id = $habilidade['habilidade_id'];
                 $habilidadeCandidato->tempo_experiencia = $habilidade['nivel_experiencia'];
                 $habilidadeCandidato->save();
             }
+            
+            $requestEndereco = json_decode($request->endereco, true);
 
             $endereco = new Endereco();
-            $endereco->cep = $request->input('endereco.cep');
-            $endereco->estado = $request->input('endereco.estado');
-            $endereco->cidade = $request->input('endereco.cidade');
-            $endereco->bairro = $request->input('endereco.bairro');
-            $endereco->logradouro = $request->input('endereco.logradouro');
-            $endereco->numero = $request->input('endereco.numero');
-            $endereco->complemento = $request->input('endereco.complemento');
+            $endereco->cep = $requestEndereco['cep'];
+            $endereco->estado = $requestEndereco['estado'];
+            $endereco->cidade = $requestEndereco['cidade'];
+            $endereco->bairro = $requestEndereco['bairro'];
+            $endereco->logradouro = $requestEndereco['logradouro'];
+            $endereco->numero = $requestEndereco['numero'];
+            $endereco->complemento = $requestEndereco['complemento'] ?? null;
             $endereco->enderecavel_type = Candidato::class;
             $endereco->enderecavel_id = $candidato->id;
             $endereco->save();
@@ -194,18 +205,23 @@ class CandidatoController extends BaseController
             $usuario->save();
 
             if ($request->has('experiencias')) {
-                foreach ($request->input('experiencias') as $experienciaData) {
-                    $experiencia = new Experiencia();
-                    $experiencia->empresa = $experienciaData['empresa'];
-                    $experiencia->cargo = $experienciaData['cargo'];
-                    $experiencia->mesInicio = $experienciaData['mesInicio'];
-                    $experiencia->anoInicio = $experienciaData['anoInicio'];
-                    $experiencia->mesFim = $experienciaData['mesFim'] ?? null;
-                    $experiencia->anoFim = $experienciaData['anoFim'] ?? null;
-                    $experiencia->trabalhoAtual = $experienciaData['trabalhoAtual'] ?? false;
-                    $experiencia->descricao = $experienciaData['descricao'] ?? null;
-                    $experiencia->candidato_id = $candidato->id;
-                    $experiencia->save();
+                $experienciasInput = $request->input('experiencias');
+                $experiencias = !empty($experienciasInput) ? json_decode($experienciasInput, true) : [];
+
+                if (is_array($experiencias)) {
+                    foreach ($experiencias as $dados) {
+                        $experiencia = new Experiencia();
+                        $experiencia->empresa = $dados['empresa'];
+                        $experiencia->cargo = $dados['cargo'];
+                        $experiencia->mesInicio = $dados['mesInicio'];
+                        $experiencia->anoInicio = $dados['anoInicio'];
+                        $experiencia->mesFim = $dados['mesFim'] ?? null;
+                        $experiencia->anoFim = $dados['anoFim'] ?? null;
+                        $experiencia->trabalhoAtual = $dados['trabalhoAtual'] ?? false;
+                        $experiencia->descricao = $dados['descricao'] ?? null;
+                        $experiencia->candidato_id = $candidato->id;
+                        $experiencia->save();
+                    }                    
                 }
             }
 

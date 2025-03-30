@@ -29,16 +29,16 @@ Route::post('/candidato/dashboard', [CandidatoController::class, 'dashboard'])->
 Route::post('auth/empresas/register/usuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
 Route::get('/empresas/profile/{id}', [EmpresaController::class, 'show'])->middleware('auth:api');
-
+Route::post('/empresa/dashboard', [EmpresaController::class, 'dashboard'])->middleware('auth:api');
 
 Route::get('/vagas/empresa', [VagaController::class, 'buscarVagasPorEmpresa'])->middleware('auth:api');
 Route::post('/vagas/register', [VagaController::class, 'salvar'])->middleware('auth:api');
 Route::get('/vagas', [VagaController::class, 'listagemVagas']);
 Route::get('/vagas/{vagaId}', [VagaController::class, 'show']);
 Route::post('/vagas/candidatura', [VagaController::class, 'candidatura'])->middleware('auth:api');
+Route::post('/vagas/gerenciar/{id}', [VagaController::class, 'gerenciar']);
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
-
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);

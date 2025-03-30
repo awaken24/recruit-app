@@ -117,28 +117,10 @@ class VagaController extends BaseController
 
             $vagas = $query->get();
 
-            LogSuccess::create([
-                'route' => $request->url(),
-                'success_message' => 'Vagas obtidas com sucesso!',
-                'user_id' => $user->id
-            ]);
-
             return $this->success_data_response('Vagas obtidas', $vagas);
         } catch (CustomException $exception) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $exception->getMessage(),
-                'user_id' => Auth::id() ?? null
-            ]);
-
             return $this->error_response($exception->getMessage(), null, 500);
         } catch (\Exception $exception) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $exception->getMessage(),
-                'user_id' => Auth::id() ?? null
-            ]);
-
             return $this->error_response('Não foi possivel buscar as vagas.', $exception->getMessage(), 500);
         }
     }
@@ -284,5 +266,19 @@ class VagaController extends BaseController
     private function calcularCompatibilidade($candidato, $vaga)
     {
         return rand(0, 100);
+    }
+
+    public function gerenciar($vagaId)
+    {
+        $vaga = Vaga::with([
+            'requisitosHabilidades.habilidade',
+            'candidaturas.candidato.habilidades'
+        ])->find($vagaId);
+
+        if (!$vaga) {
+            return $this->error_response("Vaga não encontrada.", null, 404);
+        }
+
+        return $this->success_data_response("", $vaga);
     }
 }

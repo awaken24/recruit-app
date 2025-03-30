@@ -60,12 +60,17 @@ class Vaga extends Model
         return $this->belongsTo(Empresa::class);
     }
 
+    public function candidaturas()
+    {
+        return $this->hasMany(Candidatura::class);
+    }
+
     public function toArray()
     {
         $data = parent::toArray();
         $data['empresa'] = $this->empresa ? $this->empresa->toArray() : null;
         
-        unset($data['created_at'], $data['updated_at']);
+        unset($data['updated_at']);
         return $data;
     }
 }
