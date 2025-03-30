@@ -37,7 +37,8 @@ class VagaController extends BaseController
             $vaga->perfil = $request->input('profile');
             $vaga->nivel_experiencia = $request->input('experienceLevel');
             $vaga->descricao = $request->input('descricao');
-            $vaga->requisitos = $request->input('requisitos');
+            // $vaga->requisitos = $request->input('requisitos');
+            $vaga->receber_candidaturas_ate = $request->input('receberCandidaturasAte');
             $vaga->modelo_trabalho = $request->input('modelo_trabalho');
             $vaga->endereco_trabalho = $request->input('endereco_trabalho');
             $vaga->cidade_trabalho = $request->input('cidade_trabalho');
@@ -46,15 +47,19 @@ class VagaController extends BaseController
             $vaga->faixa_salarial = $request->input('faixa_salarial');
             $vaga->divulgar_salario = $request->input('divulgar_salario');
             $vaga->empresa_id = $empresa->id;
-            $vaga->vale_refeicao = $request->input('beneficios.vale_refeicao', false);
-            $vaga->vale_alimentacao = $request->input('beneficios.vale_alimentacao', false);
-            $vaga->vale_transporte = $request->input('beneficios.vale_transporte', false);
-            $vaga->plano_saude = $request->input('beneficios.plano_saude', false);
-            $vaga->plano_odontologico = $request->input('beneficios.plano_odontologico', false);
-            $vaga->seguro_vida = $request->input('beneficios.seguro_vida', false);
-            $vaga->vale_estacionamento = $request->input('beneficios.vale_estacionamento', false);
-            $vaga->academia_gympass = $request->input('beneficios.academia_gympass', false);
-            $vaga->bonus = $request->input('beneficios.bonus', false);
+
+            $beneficios = $request->input('beneficios', []);
+
+            $vaga->vale_refeicao = in_array('vale_refeicao', $beneficios);
+            $vaga->vale_alimentacao = in_array('vale_alimentacao', $beneficios);
+            $vaga->vale_transporte = in_array('vale_transporte', $beneficios);
+            $vaga->plano_saude = in_array('plano_saude', $beneficios);
+            $vaga->plano_odontologico = in_array('plano_odontologico', $beneficios);
+            $vaga->seguro_vida = in_array('seguro_vida', $beneficios);
+            $vaga->vale_estacionamento = in_array('vale_estacionamento', $beneficios);
+            $vaga->academia_gympass = in_array('academia_gympass', $beneficios);
+            $vaga->bonus = in_array('bonus', $beneficios);
+
             $vaga->save();
 
             foreach ($request->input('habilidadesRequeridas') as $habilidade) {
@@ -128,7 +133,6 @@ class VagaController extends BaseController
     public function listagemVagas(Request $request)
     {
         try {
-            $user = Auth::user();
             $response = ['vagas' => [], 'habilidades' => []];
 
             $habilidadeId = request('habilidade');
@@ -142,12 +146,13 @@ class VagaController extends BaseController
 
             $vagas = $vagasQuery->get();
 
-            if ($user && $user->usuarioable_type === 'App\Models\Candidato') {
-                $candidato = $user->usuarioable;
+            $usuario = auth('api')->user();
+            if ($usuario && $usuario->usuarioable_type === 'App\Models\Candidato') {
+                $candidato = $usuario->usuarioable;
 
-                if ($candidato->perfil_preenchido) {
+                if ($usuario->perfil_completo) {
                     foreach ($vagas as $vaga) {
-                        $vaga->compatibilidade = $this->calcularCompatibilidade($candidato, $vaga);
+                        $vaga->compatibilidade = $vaga->calcularCompatibilidade($candidato);
                     }
                 }
             }
