@@ -13,13 +13,3 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
-
-
-# ==============================================
-# INSTRUÇÕES PARA CONFIGURAÇÃO DO PROJETO
-# ==============================================
-# Após clonar o projeto, execute o comando:
-# php artisan storage:link
-#
-# Isso criará um link simbólico para a pasta "storage/app/public"
-# permitindo o acesso público a arquivos armazenados.
