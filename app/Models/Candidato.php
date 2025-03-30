@@ -31,6 +31,7 @@ class Candidato extends Model
         'tipo_empresa',
         'titulo',
         'trabalho_remoto',
+        'foto_perfil'
     ];
 
     public function endereco()
@@ -52,4 +53,10 @@ class Candidato extends Model
         return $this->hasMany(Candidatura::class, 'candidato_id');
     }
 
+    public function habilidades()
+    {
+        return $this->belongsToMany(Habilidade::class, 'habilidade_candidatos')
+                    ->withPivot('tempo_experiencia')
+                    ->withTimestamps();
+    }
 }

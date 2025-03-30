@@ -10,7 +10,8 @@ use App\Models\{
     Endereco,
     LogErrors,
     LogSuccess,
-    Usuario
+    Usuario,
+    Vaga
 };
 
 class EmpresaController extends BaseController
@@ -111,6 +112,8 @@ class EmpresaController extends BaseController
                 throw new CustomException("Usuário como empresa não autenticado.", 401);
             }
 
+            // return response()->json("Chegou assim aqui", 500);
+
             $empresa = new Empresa();
             $empresa->nome_fantasia = $request->input('nome_fantasia');
             $empresa->razao_social = $request->input('razao_social');
@@ -137,11 +140,25 @@ class EmpresaController extends BaseController
             $empresa->contato_cargo = $request->input('contato_cargo');
             $empresa->contato_telefone = $request->input('contato_telefone');
             $empresa->como_encontrou = $request->input('como_encontrou');
-            $empresa->save();
 
-            $enderecoData = $request->input('endereco');
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');   
+                $nomeArquivo = 'logo_' . time() . '.' . $logo->getClientOriginalExtension();
+                $caminho = $logo->storeAs('public/logos', $nomeArquivo);
+                $empresa->logo_path = 'storage/logos/' . $nomeArquivo;
+            }
+
+            $empresa->save();
+            $requestEndereco = $request->input('endereco');
+
             $endereco = new Endereco();
-            $endereco->fill($enderecoData);
+            $endereco->cep = $requestEndereco['cep'];
+            $endereco->estado = $requestEndereco['estado'];
+            $endereco->cidade = $requestEndereco['cidade'];
+            $endereco->bairro = $requestEndereco['bairro'];
+            $endereco->logradouro = $requestEndereco['logradouro'];
+            $endereco->numero = $requestEndereco['numero'];
+            $endereco->complemento = $requestEndereco['complemento'] ?? null;
             $endereco->enderecavel_type = Empresa::class;
             $endereco->enderecavel_id = $empresa->id;
             $endereco->save();
@@ -184,4 +201,34 @@ class EmpresaController extends BaseController
             return $this->error_response('Erro ao cadastrar empresa.', $exception->getMessage());
         }
     }
+
+    public function dashboard(Request $request)
+    {
+        try {
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+
+            if ($usuario->usuarioable_type !== 'App\Models\Empresa') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $empresa = $usuario->usuarioable;
+            $query = Vaga::where('empresa_id', $empresa->id);
+            $vagas = $query->get();
+
+            $response = [
+                'empresa' => $empresa,
+                'vagas' => $vagas
+            ];
+
+            return $this->success_data_response("Dashboard Carregado", $response);
+        } catch (CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $e) {
+            return $this->error_response('Erro ao carregar dashboard.', $e->getMessage());
+        }
+    }
+
 }
