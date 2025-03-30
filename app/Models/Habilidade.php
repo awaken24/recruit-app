@@ -19,6 +19,11 @@ class Habilidade extends Model
         return $this->hasMany(Requisito::class);
     }
 
+    public function getTempoExperienciaAttribute()
+    {
+        return $this->pivot->tempo_experiencia;
+    }
+
     public function toArray() 
     {
         return [
