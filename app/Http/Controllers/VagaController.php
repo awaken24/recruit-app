@@ -13,7 +13,8 @@ use App\Models\{
     Requisito,
     Habilidade,
     LogErrors,
-    LogSuccess
+    LogSuccess,
+    candidatura
 };
 
 class VagaController extends BaseController
@@ -232,14 +233,16 @@ class VagaController extends BaseController
                 ->where('vaga_id', $vagaId)
                 ->exists();
 
-            if($candidaturaExistente){
+            if ($candidaturaExistente) {
                 throw CandidaturaException::candidaturaJaRealizada();
             }
 
             $candidato->candidatura()->create([
                 'vaga_id' => $vagaId,
                 'empresa_id' => $vaga->empresa_id,
-                'candidato_id' => $candidato->id
+                'candidato_id' => $candidato->id,
+                'status' => Candidatura::STATUS_PENDENTE,
+                'compatibilidade' => $vaga->calcularCompatibilidade($candidato)
             ]);
 
             LogSuccess::create([
@@ -268,11 +271,6 @@ class VagaController extends BaseController
         }
     }
 
-    private function calcularCompatibilidade($candidato, $vaga)
-    {
-        return rand(0, 100);
-    }
-
     public function gerenciar($vagaId)
     {
         $vaga = Vaga::with([
@@ -285,5 +283,47 @@ class VagaController extends BaseController
         }
 
         return $this->success_data_response("", $vaga);
+    }
+
+    public function aprovarCandidatura($candidaturaId)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->usuarioable_type !== 'App\Models\Empresa') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $candidatura = Candidatura::findOrFail($candidaturaId);
+            $candidatura->status = Candidatura::STATUS_APROVADA;
+            $candidatura->save();
+    
+            return $this->success_response('Candidatura aprovada.', 200);
+        } catch(CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch(\Exception $exception) {
+            return $this->error_response('Não foi possível aprovar a candidatura', $exception->getMessage(), 500);
+        }
+    }
+
+    public function reprovarCandidatura($candidaturaId)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->usuarioable_type !== 'App\Models\Empresa') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $candidatura = Candidatura::findOrFail($candidaturaId);
+            $candidatura->status = Candidatura::STATUS_REPROVADA;
+            $candidatura->save();
+
+            return $this->success_response('Candidatura reprovada.', 200);
+        } catch(CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch(\Exception $exception) {
+            return $this->error_response('Não foi possível aprovar a candidatura', $exception->getMessage(), 500);
+        }
     }
 }
