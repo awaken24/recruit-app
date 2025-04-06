@@ -40,6 +40,9 @@ Route::post('/vagas/gerenciar/{id}', [VagaController::class, 'gerenciar']);
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
 
+Route::patch('/candidaturas/{id}/aprovar', [VagaController::class, 'aprovarCandidatura'])->middleware('auth:api');
+Route::patch('/candidaturas/{id}/reprovar', [VagaController::class, 'reprovarCandidatura'])->middleware('auth:api');
+
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
