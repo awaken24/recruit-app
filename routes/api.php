@@ -25,11 +25,14 @@ Route::post('/candidatos', [CandidatoController::class, 'salvar']);
 Route::post('auth/candidato/register/usuario', [CandidatoController::class, 'salvarUsuario']);
 Route::post('/candidato/register', [CandidatoController::class, 'salvar'])->middleware('auth:api');
 Route::post('/candidato/dashboard', [CandidatoController::class, 'dashboard'])->middleware('auth:api');
+Route::post('/candidato/painel', [CandidatoController::class, 'painelVagas'])->middleware('auth:api');
 
 Route::post('auth/empresas/register/usuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
 Route::get('/empresas/profile/{id}', [EmpresaController::class, 'show'])->middleware('auth:api');
 Route::post('/empresa/dashboard', [EmpresaController::class, 'dashboard'])->middleware('auth:api');
+Route::post('/empresa/config', [EmpresaController::class, 'getConfiguracaoEmpresa'])->middleware('auth:api');
+Route::post('/empresa/salvarConfiguracoes', [EmpresaController::class, 'salvarConfiguracao'])->middleware('auth:api');
 
 Route::get('/vagas/empresa', [VagaController::class, 'buscarVagasPorEmpresa'])->middleware('auth:api');
 Route::post('/vagas/register', [VagaController::class, 'salvar'])->middleware('auth:api');

@@ -67,3 +67,4 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 # 3. Crie o link simbólico para a pasta storage (necessário para acesso a arquivos públicos, como imagens de uploads):
 php artisan storage:link
 php artisan marcar:vagas-vencidas para o cron
+php artisan oportunidades:gerar para o cron
