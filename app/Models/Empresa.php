@@ -52,6 +52,11 @@ class Empresa extends Model
         return $this->hasMany(Vaga::class);
     }
 
+    public function configuracao()
+    {
+        return $this->hasOne(ConfiguracaoEmpresa::class);
+    }
+
     /**
      * @return array
      */

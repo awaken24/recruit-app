@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
 use Illuminate\Support\Facades\{DB, Hash, Validator};
+use Illuminate\Support\Facades\Auth;
 use App\Models\{
     Candidato,
     Endereco,
@@ -12,7 +13,8 @@ use App\Models\{
     HabilidadeCandidato,
     Experiencia,
     LogErrors,
-    LogSuccess
+    LogSuccess,
+    Oportunidades
 };
 
 class CandidatoController extends BaseController
@@ -104,13 +106,13 @@ class CandidatoController extends BaseController
             }
 
             $candidato = $usuario->usuarioable;
-
             $qtdCandidaturas = $candidato->candidatura()->count();
+            $qtdOportunidades = $candidato->oportunidades()->count();
 
             $response = [
                 'candidato' => $candidato,
                 'qtdCandidaturas' => $qtdCandidaturas,
-                'qtdOprtunidades' => 0
+                'qtdOprtunidades' => $qtdOportunidades
             ];
 
             return $this->success_data_response("Dashboard Carregado", $response);
@@ -256,4 +258,33 @@ class CandidatoController extends BaseController
             return $this->error_response('Erro ao cadastrar candidato.', $exception->getMessage());
         }
     }
+
+    public function painelVagas()
+    {
+        try {
+            $usuario = Auth::user();
+            
+            if (!$usuario) {
+                throw new CustomException('Usuário não autenticado.', 403);
+            }
+
+            $candidato = $usuario->usuarioable;
+
+            $candidaturas = $candidato->candidatura()->with(['candidato.habilidades', 'vaga', 'empresa'])->get();
+            $oportunidades = $candidato->oportunidades()->where('status', 'pendente')->with('vaga')->get();
+
+            $response = [
+                'candidaturas' => $candidaturas,
+                'oportunidades' => $oportunidades
+            ];
+
+            return $this->success_data_response("", $response);
+
+        } catch (CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            return $this->error_response('Não foi possível aprovar a candidatura', $exception->getMessage(), 500);
+        }
+    }
+
 }

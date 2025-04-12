@@ -14,6 +14,7 @@ use App\Models\{
     Vaga
 };
 
+
 class EmpresaController extends BaseController
 {
     public function show($id, Request $request)
@@ -111,8 +112,6 @@ class EmpresaController extends BaseController
             if (!$usuario) {
                 throw new CustomException("Usuário como empresa não autenticado.", 401);
             }
-
-            // return response()->json("Chegou assim aqui", 500);
 
             $empresa = new Empresa();
             $empresa->nome_fantasia = $request->input('nome_fantasia');
@@ -231,4 +230,76 @@ class EmpresaController extends BaseController
         }
     }
 
+    public function getConfiguracaoEmpresa()
+    {
+        try {
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+    
+            if ($usuario->usuarioable_type !== 'App\Models\Empresa') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $empresa = $usuario->usuarioable;
+
+            $config = $empresa->configuracao ?? $empresa->configuracao()->create([
+                'whatsapp_ativo' => false,
+                'whatsapp_token' => null,
+                'whatsapp_instance' => null,
+                'whatsapp_template' => 'Olá {{nome}}, sua candidatura para a vaga {{vaga}} foi aprovada!',
+            ]);
+
+            return $this->success_data_response("Configurações", $config);
+        } catch(CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch(\Exception $exception) {
+            return $this->error_response('Erro ao carregar configurações.', $exception->getMessage());
+        }
+    }
+
+    public function salvarConfiguracao(Request $request)
+    {
+        try {
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário não autenticado.", 401);
+            }
+    
+            if ($usuario->usuarioable_type !== 'App\Models\Empresa') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $data = $request->validate([
+                'whatsapp_ativo' => 'required|boolean',
+                'whatsapp_token' => 'nullable|string',
+                'whatsapp_instance' => 'nullable|string',
+                'whatsapp_template' => 'nullable|string',
+                'whatsapp_security_token' => 'nullable|string',
+            ]);            
+
+            $empresa = $usuario->usuarioable;
+            $config = $empresa->configuracao ?? $empresa->configuracao()->create([]);
+
+            if (!$data['whatsapp_ativo']) {
+                $data['whatsapp_token'] = null;
+                $data['whatsapp_instance'] = null;
+            }
+
+            $config->update([
+                'whatsapp_ativo' => $data['whatsapp_ativo'],
+                'whatsapp_token' => $data['whatsapp_token'],
+                'whatsapp_instance' => $data['whatsapp_instance'],
+                'whatsapp_template' => $data['whatsapp_template'],
+                'whatsapp_security_token' => $data['whatsapp_security_token']
+            ]);
+
+            return $this->success_response("Configuração atualizada com sucesso.", 200);
+        } catch (CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            return $this->error_response('Erro ao salvar configurações.', $exception->getMessage());
+        }
+    }
 }

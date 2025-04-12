@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Libraries\ZApi;
 use App\Models\{
     Empresa,
     Vaga,
@@ -296,6 +297,32 @@ class VagaController extends BaseController
 
             $candidatura = Candidatura::findOrFail($candidaturaId);
             $candidatura->status = Candidatura::STATUS_APROVADA;
+
+            $configEmpresa = $candidatura->empresa->configuracao;
+            $candidato     = $candidatura->candidato;
+            $vaga          = $candidatura->vaga;
+            $empresa       = $candidatura->empresa;
+    
+            $resposta = null;
+    
+            if ($configEmpresa->whatsapp_ativo) {
+                $template = $configEmpresa->whatsapp_template;
+    
+                $mensagem = str_replace(
+                    ['{{candidato}}', '{{vaga}}', '{{empresa}}'],
+                    [$candidato->nome, $vaga->titulo, $empresa->nome_fantasia],
+                    $template
+                );
+    
+                $zapi = new ZApi(
+                    $configEmpresa->whatsapp_instance,
+                    $configEmpresa->whatsapp_token,
+                    $configEmpresa->whatsapp_security_token
+                );
+    
+                $resposta = $zapi->sendMessage($candidato->telefone, $mensagem);
+            }
+
             $candidatura->save();
     
             return $this->success_response('Candidatura aprovada.', 200);

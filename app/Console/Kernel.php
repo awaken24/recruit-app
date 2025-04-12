@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('marcar:vagas-vencidas')->dailyAt('00:01');
+        $schedule->command('oportunidades:gerar')->dailyAt('01:00');
     }
 
     /**
