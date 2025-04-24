@@ -287,4 +287,20 @@ class CandidatoController extends BaseController
         }
     }
 
+    public function show($id)
+    {
+        try {
+            $candidato = Candidato::with('experiencias', 'habilidades')->find($id);
+
+            if (!$candidato) {
+                throw new CustomException('Candidato não encontrato', 404);
+            }
+    
+            return $this->success_data_response('', $candidato);
+        } catch (CustomException $exception) {
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            return $this->error_response('Não foi possível encontrar o candidato', $exception->getMessage(), $exception->getCode());
+        }
+    }
 }

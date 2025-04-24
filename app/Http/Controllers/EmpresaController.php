@@ -26,31 +26,13 @@ class EmpresaController extends BaseController
                 throw new CustomException('Empresa não encontrada', 404);
             }
 
-            LogSuccess::create([
-                'route' => $request->url(),
-                'success_message' => 'Dados da empresa recuperados com succeso.',
-                'user_id' => auth()->id()
-            ]);
-
             return $this->success_data_response(
                 'Dados da empresa recuperados com sucesso',
                 $company->toArrayProfile()
             );
         } catch (CustomException $exception) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $exception->getMessage(),
-                'user_id' => auth()->id()
-            ]);
-
-            $this->error_response($exception->getMessage());
+            return $this->error_response($exception->getMessage());
         } catch (\Exception $exception) {
-            LogErrors::create([
-                'route' => $request->url(),
-                'error_message' => $exception->getMessage(),
-                'user_id' => auth()->id()
-            ]);
-
             return $this->error_response('Erro ao consultar empresa.', $exception->getMessage());
         }
     }
