@@ -26,6 +26,7 @@ Route::post('auth/candidato/register/usuario', [CandidatoController::class, 'sal
 Route::post('/candidato/register', [CandidatoController::class, 'salvar'])->middleware('auth:api');
 Route::post('/candidato/dashboard', [CandidatoController::class, 'dashboard'])->middleware('auth:api');
 Route::post('/candidato/painel', [CandidatoController::class, 'painelVagas'])->middleware('auth:api');
+Route::post('/candidato/profile/{id}', [CandidatoController::class, 'show']);
 
 Route::post('auth/empresas/register/usuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
