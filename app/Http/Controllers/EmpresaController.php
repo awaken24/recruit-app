@@ -11,9 +11,9 @@ use App\Models\{
     LogErrors,
     LogSuccess,
     Usuario,
-    Vaga
+    Vaga,
+    ConfiguracaoEmpresa
 };
-
 
 class EmpresaController extends BaseController
 {
@@ -231,6 +231,8 @@ class EmpresaController extends BaseController
                 'whatsapp_token' => null,
                 'whatsapp_instance' => null,
                 'whatsapp_template' => 'Olá {{nome}}, sua candidatura para a vaga {{vaga}} foi aprovada!',
+                'email_template_sucesso' => ConfiguracaoEmpresa::TEMPLATE_SUCESSO_PADRAO,
+                'email_template_recusado' => ConfiguracaoEmpresa::TEMPLATE_RECUSADO_PADRAO,
             ]);
 
             return $this->success_data_response("Configurações", $config);
@@ -259,6 +261,8 @@ class EmpresaController extends BaseController
                 'whatsapp_instance' => 'nullable|string',
                 'whatsapp_template' => 'nullable|string',
                 'whatsapp_security_token' => 'nullable|string',
+                'email_template_sucesso' => 'nullable|string',
+                'email_template_recusado' => 'nullable|string',
             ]);            
 
             $empresa = $usuario->usuarioable;
@@ -274,7 +278,9 @@ class EmpresaController extends BaseController
                 'whatsapp_token' => $data['whatsapp_token'],
                 'whatsapp_instance' => $data['whatsapp_instance'],
                 'whatsapp_template' => $data['whatsapp_template'],
-                'whatsapp_security_token' => $data['whatsapp_security_token']
+                'whatsapp_security_token' => $data['whatsapp_security_token'],
+                'email_template_sucesso' => $data['email_template_sucesso'],
+                'email_template_recusado' => $data['email_template_recusado']
             ]);
 
             return $this->success_response("Configuração atualizada com sucesso.", 200);

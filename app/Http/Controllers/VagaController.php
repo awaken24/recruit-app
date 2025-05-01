@@ -6,8 +6,13 @@ use App\Exceptions\CandidaturaException;
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use App\Libraries\ZApi;
+use App\Mail\{
+    CandidaturaAprovadaMail,
+    CandidaturaReprovadaMail
+};
 use App\Models\{
     Empresa,
     Vaga,
@@ -306,21 +311,82 @@ class VagaController extends BaseController
             $resposta = null;
     
             if ($configEmpresa->whatsapp_ativo) {
-                $template = $configEmpresa->whatsapp_template;
+                try {
+                    $template = $configEmpresa->whatsapp_template;
     
-                $mensagem = str_replace(
-                    ['{{candidato}}', '{{vaga}}', '{{empresa}}'],
-                    [$candidato->nome, $vaga->titulo, $empresa->nome_fantasia],
-                    $template
-                );
+                    $mensagem = str_replace(
+                        ['{{candidato}}', '{{vaga}}', '{{empresa}}'],
+                        [$candidato->nome, $vaga->titulo, $empresa->nome_fantasia],
+                        $template
+                    );
     
-                $zapi = new ZApi(
-                    $configEmpresa->whatsapp_instance,
-                    $configEmpresa->whatsapp_token,
-                    $configEmpresa->whatsapp_security_token
-                );
+                    $zapi = new ZApi(
+                        $configEmpresa->whatsapp_instance,
+                        $configEmpresa->whatsapp_token,
+                        $configEmpresa->whatsapp_security_token
+                    );
     
-                $resposta = $zapi->sendMessage($candidato->telefone, $mensagem);
+                    $zapi->sendMessage($candidato->telefone, $mensagem);
+                } catch (\Throwable $exception) {
+                    LogErrors::create([
+                        'route' => 'aprovar/candidatura',
+                        'error_message' => 'Erro ao enviar mensagem via WhatsApp: ' . $exception->getMessage(),
+                        'user_id' => Auth::id() ?? null
+                    ]);
+                }
+            }
+
+            if (!empty($configEmpresa->email_template_sucesso)) {
+                try {
+                    $emailRequest = $candidato->usuario->email;
+
+                    $modeloTrabalho = null;
+                    if ($vaga->modelo_trabalho === 'remoto') {
+                        $modeloTrabalho = 'Remoto';
+                    } else {
+                        $modeloTrabalho= 'Presencial/Híbrido';
+                    }
+
+                    if (!in_array($tipoContrato = strtoupper($vaga->tipo_contrato), ['CLT', 'PJ'])) {
+                        $tipoContrato = 'Estágio';
+                    }
+
+                    $detalhesHtml = '
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f7f7f7; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                            <tr>
+                                <td style="font-weight: 500; color: #666666; width: 120px;">Cargo:</td>
+                                <td style="color: #333333; padding-left: 10px;"> ' . $vaga->titulo . ' </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 500; color: #666666; width: 120px; white-space: nowrap;">Modelo de trabalho:</td>
+                                <td style="color: #333333; padding-left: 10px;">' . $modeloTrabalho . '</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 500; color: #666666; width: 120px; white-space: nowrap;">Tipo de contrato:</td>
+                                <td style="color: #333333; padding-left: 10px;">' . $tipoContrato . '</td>
+                            </tr>
+                        </table>';
+            
+                    $emailBody = str_replace(
+                        ['{{nome}}', '{{vaga}}', '{{empresa}}', '{{detalhes_vaga}}'],
+                        [$candidato->nome, $vaga->titulo, $empresa->nome_fantasia, $detalhesHtml],
+                        $configEmpresa->email_template_sucesso
+                    );
+            
+                    Mail::to($emailRequest)->send(new CandidaturaAprovadaMail($emailBody));
+            
+                    LogSuccess::create([
+                        'route' => 'aprovar/candidatura',
+                        'success_message' => 'Email enviado ao candidato com sucesso: ' . $emailRequest,
+                        'user_id' => Auth::id() ?? null
+                    ]);
+                } catch (\Throwable $exception) {
+                    LogErrors::create([
+                        'route' => 'aprovar/candidatura',
+                        'error_message' => 'Erro ao enviar e-mail: ' . $exception->getMessage(),
+                        'user_id' => Auth::id() ?? null
+                    ]);
+                }
             }
 
             $candidatura->save();
@@ -344,6 +410,38 @@ class VagaController extends BaseController
 
             $candidatura = Candidatura::findOrFail($candidaturaId);
             $candidatura->status = Candidatura::STATUS_REPROVADA;
+
+            $configEmpresa = $candidatura->empresa->configuracao;
+            $candidato     = $candidatura->candidato;
+            $vaga          = $candidatura->vaga;
+            $empresa       = $candidatura->empresa;
+
+            if (!empty($configEmpresa->email_template_recusado)) {
+                try {
+                    $emailRequest = $candidato->usuario->email;
+    
+                    $emailBody = str_replace(
+                        ['{{nome}}', '{{vaga}}', '{{empresa}}'],
+                        [$candidato->nome, $vaga->titulo, $empresa->nome_fantasia],
+                        $configEmpresa->email_template_recusado
+                    );
+    
+                    Mail::to($emailRequest)->send(new CandidaturaReprovadaMail($emailBody));
+    
+                    LogSuccess::create([
+                        'route' => 'reprovar/candidatura',
+                        'success_message' => 'Email de reprovação enviado ao candidato com sucesso: ' . $emailRequest,
+                        'user_id' => Auth::id() ?? null
+                    ]);
+                } catch (\Throwable $exception) {
+                    LogErrors::create([
+                        'route' => 'reprovar/candidatura',
+                        'error_message' => 'Erro ao enviar e-mail de reprovação: ' . $exception->getMessage(),
+                        'user_id' => Auth::id() ?? null
+                    ]);
+                }
+            }
+
             $candidatura->save();
 
             return $this->success_response('Candidatura reprovada.', 200);
