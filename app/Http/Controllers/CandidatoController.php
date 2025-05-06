@@ -303,4 +303,65 @@ class CandidatoController extends BaseController
             return $this->error_response('Não foi possível encontrar o candidato', $exception->getMessage(), $exception->getCode());
         }
     }
+
+    public function getConfiguracao()
+    {
+        try {
+            $usuario = Auth::user();
+
+            if ($usuario->usuarioable_type !== 'App\Models\Candidato') {
+                throw new CustomException('Usuário autenticado não é um candidato.', 403);
+            }
+
+            $candidato = $usuario->usuarioable;
+
+            $config = $candidato->configuracao ?? $candidato->configuracao()->create([
+                'notificacoes_email' => true,
+                'notificacoes_whatsapp' => false,
+                'receber_alertas_vagas' => true,
+            ]);
+
+            return $this->success_data_response("Configurações", $config);
+        } catch (CustomException $exception) {
+            return response()->json(['status' => 'error', 'message' => $exception->getMessage()
+            ], $exception->getCode());
+        } catch (\Exception $exception) {
+            return response()->json(['status' => 'error', 'message' => 'Não foi possível carregar as configurações.', 'debug' => $exception->getMessage()], 500);
+        }
+    }
+
+    public function salvarConfiguracao(Request $request)
+    {
+        try {
+            $usuario = Auth::user();
+
+            if ($usuario->usuarioable_type !== 'App\Models\Candidato') {
+                throw new CustomException('Usuário autenticado não é um candidato.', 403);
+            }
+
+            $candidato = $usuario->usuarioable;
+
+            $dadosValidados = $request->validate([
+                'notificacoes_email' => 'required|boolean',
+                'notificacoes_whatsapp' => 'required|boolean',
+                'receber_alertas_vagas' => 'required|boolean'
+            ]);
+
+            $config = $candidato->configuracao;
+
+            if ($config) {
+                $config->update($dadosValidados);
+            } else {
+                $config = $candidato->configuracao()->create($dadosValidados);
+            }
+
+            return $this->success_response("Configuração atualizada com sucesso.", 200);
+        } catch (CustomException $exception) {
+            return response()->json(['status' => 'error', 'message' => $exception->getMessage()], $exception->getCode());
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return response()->json(['status' => 'error', 'message' => 'Dados inválidos.', 'errors' => $exception->errors()], 422);
+        } catch (\Exception $exception) {
+            return response()->json(['status' => 'error', 'message' => 'Não foi possível salvar as configurações.', 'debug' => $exception->getMessage()], 500);
+        }
+    }
 }

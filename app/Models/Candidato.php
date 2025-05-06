@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\{
     Endereco,
     Experiencia,
-    Oportunidades
+    Oportunidades,
+    ConfiguracaoCandidato
 };
 
 class Candidato extends Model
@@ -57,6 +58,11 @@ class Candidato extends Model
     public function oportunidades()
     {
         return $this->hasMany(Oportunidades::class, 'candidato_id');
+    }
+
+    public function configuracao()
+    {
+        return $this->hasOne(ConfiguracaoCandidato::class);
     }
 
     public function habilidades()
