@@ -29,13 +29,16 @@ Route::post('/candidato/painel', [CandidatoController::class, 'painelVagas'])->m
 Route::post('/candidato/profile/{id}', [CandidatoController::class, 'show']);
 Route::post('/candidato/configuracao', [CandidatoController::class, 'getConfiguracao'])->middleware('auth:api');
 Route::post('/candidato/salvarConfiguracoes', [CandidatoController::class, 'salvarConfiguracao'])->middleware('auth:api');
+Route::get('/candidato/perfil', [CandidatoController::class, 'perfil'])->middleware('auth:api');
+Route::post('/candidato/{id}/atualizar', [CandidatoController::class, 'atualizar']);
 
 Route::post('auth/empresas/register/usuario', [EmpresaController::class, 'salvarUsuario']);
 Route::post('/empresas/register', [EmpresaController::class, 'salvar'])->middleware('auth:api');
-Route::get('/empresas/profile/{id}', [EmpresaController::class, 'show'])->middleware('auth:api');
+Route::get('/empresas/profile/{id}', [EmpresaController::class, 'show']);
 Route::post('/empresa/dashboard', [EmpresaController::class, 'dashboard'])->middleware('auth:api');
 Route::post('/empresa/config', [EmpresaController::class, 'getConfiguracaoEmpresa'])->middleware('auth:api');
 Route::post('/empresa/salvarConfiguracoes', [EmpresaController::class, 'salvarConfiguracao'])->middleware('auth:api');
+Route::post('/empresa/{id}/atualizar', [EmpresaController::class, 'atualizar'])->middleware('auth:api');
 
 Route::get('/vagas/empresa', [VagaController::class, 'buscarVagasPorEmpresa'])->middleware('auth:api');
 Route::post('/vagas/register', [VagaController::class, 'salvar'])->middleware('auth:api');

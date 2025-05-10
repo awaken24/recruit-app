@@ -71,4 +71,9 @@ class Candidato extends Model
                     ->withPivot('tempo_experiencia')
                     ->withTimestamps();
     }
+
+    public function habilidadeCandidatos()
+    {
+        return $this->hasMany(HabilidadeCandidato::class, 'candidato_id');
+    }
 }
