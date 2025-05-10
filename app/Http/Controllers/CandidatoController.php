@@ -290,7 +290,7 @@ class CandidatoController extends BaseController
     public function show($id)
     {
         try {
-            $candidato = Candidato::with('experiencias', 'habilidades')->find($id);
+            $candidato = Candidato::with('experiencias', 'habilidadeCandidatos.habilidade', 'endereco')->find($id);
 
             if (!$candidato) {
                 throw new CustomException('Candidato não encontrato', 404);
@@ -364,4 +364,108 @@ class CandidatoController extends BaseController
             return response()->json(['status' => 'error', 'message' => 'Não foi possível salvar as configurações.', 'debug' => $exception->getMessage()], 500);
         }
     }
+
+    public function atualizar(Request $request, $id)
+    {
+        try {
+            $usuario = auth()->user();
+            // if (!$usuario) {
+            //    throw new CustomException("Usuário não autenticado.", 401);
+            //}
+
+            DB::beginTransaction();
+
+            $candidato = Candidato::findOrFail($id);
+
+            $candidato->nome = $request->input('nome');
+            $candidato->sobrenome = $request->input('sobrenome');
+            $candidato->telefone = $request->input('telefone');
+            $candidato->cpf = $request->input('cpf');
+            $candidato->titulo = $request->input('titulo');
+            $candidato->nivelIngles = $request->input('nivelIngles');
+            $candidato->descricao = $request->input('descricao');
+            $candidato->linkedin = $request->input('linkedin');
+            $candidato->github = $request->input('github');
+            $candidato->foco_carreira = $request->input('foco_carreira');
+            $candidato->experienceLevel = $request->input('experienceLevel');
+            $candidato->salario_desejado = $request->input('salario_desejo');
+            $candidato->tipo_empresa = $request->input('tipo_empresa');
+            $candidato->tipo_contrato = $request->input('tipo_contrato');
+            $candidato->status_busca = $request->input('status_busca');
+            $candidato->trabalho_remoto = $request->input('trabalho_remoto') === 'sim';
+            $candidato->pcd = $request->input('pcd') === 'sim';
+
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');   
+                $nomeArquivo = 'logo_' . time() . '.' . $logo->getClientOriginalExtension();
+                $logo->storeAs('public/logos', $nomeArquivo);
+                $candidato->foto_perfil = 'storage/logos/' . $nomeArquivo;
+            }
+
+            $candidato->save();
+
+            // Atualizar habilidades
+            HabilidadeCandidato::where('candidato_id', $candidato->id)->delete();
+
+            $habilidades = json_decode($request->input('habilidades'), true);
+            foreach ($habilidades as $habilidade) {
+                $hc = new HabilidadeCandidato();
+                $hc->candidato_id = $candidato->id;
+                $hc->habilidade_id = $habilidade['habilidade_id'];
+                $hc->tempo_experiencia = $habilidade['nivel_experiencia'];
+                $hc->save();
+            }
+
+
+            $dadosEndereco = json_decode($request->endereco, true);
+            $endereco = $candidato->endereco()->firstOrNew([]);
+            $endereco->fill([
+                'cep' => $dadosEndereco['cep'],
+                'estado' => $dadosEndereco['estado'],
+                'cidade' => $dadosEndereco['cidade'],
+                'bairro' => $dadosEndereco['bairro'],
+                'logradouro' => $dadosEndereco['logradouro'],
+                'numero' => $dadosEndereco['numero'],
+                'complemento' => $dadosEndereco['complemento'] ?? null,
+            ]);
+            $endereco->save();
+
+            $candidato->experiencias()->delete();
+            $experienciasInput = $request->input('experiencias');
+            $experiencias = !empty($experienciasInput) ? json_decode($experienciasInput, true) : [];
+
+            foreach ($experiencias as $dados) {
+                $experiencia = new Experiencia();
+                $experiencia->empresa = $dados['empresa'];
+                $experiencia->cargo = $dados['cargo'];
+                $experiencia->mesInicio = $dados['mesInicio'];
+                $experiencia->anoInicio = $dados['anoInicio'];
+                $experiencia->mesFim = $dados['mesFim'] ?? null;
+                $experiencia->anoFim = $dados['anoFim'] ?? null;
+                $experiencia->trabalhoAtual = $dados['trabalhoAtual'] ?? false;
+                $experiencia->descricao = $dados['descricao'] ?? null;
+                $experiencia->candidato_id = $candidato->id;
+                $experiencia->save();
+            }
+
+            DB::commit();
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Candidato atualizado com sucesso',
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->success_response("Candidato atualizado com sucesso");
+        } catch (CustomException $exception) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $exception->getMessage()], $exception->getCode());
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => 'Erro ao atualizar candidato', 'error' => $exception->getMessage()], 500);
+        }
+    }
+
+
+
 }

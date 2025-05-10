@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Exceptions\CustomException;
 use Illuminate\Support\Facades\{DB, Validator, Hash};
+use Illuminate\Support\Facades\Auth;
 use App\Models\{
     Empresa,
     Endereco,
@@ -20,16 +21,13 @@ class EmpresaController extends BaseController
     public function show($id, Request $request)
     {
         try {
-            $company = Empresa::find($id);
+            $company = Empresa::with('endereco')->find($id);
 
             if (!$company) {
                 throw new CustomException('Empresa não encontrada', 404);
             }
 
-            return $this->success_data_response(
-                'Dados da empresa recuperados com sucesso',
-                $company->toArrayProfile()
-            );
+            return $this->success_data_response('Dados da empresa recuperados com sucesso', $company);
         } catch (CustomException $exception) {
             return $this->error_response($exception->getMessage());
         } catch (\Exception $exception) {
@@ -288,6 +286,106 @@ class EmpresaController extends BaseController
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch (\Exception $exception) {
             return $this->error_response('Erro ao salvar configurações.', $exception->getMessage());
+        }
+    }
+
+    public function atualizar(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $usuario = auth()->user();
+            if (!$usuario) {
+                throw new CustomException("Usuário como empresa não autenticado.", 401);
+            }
+
+            $empresa = Empresa::findOrFail($id);
+
+            $empresa->nome_fantasia = $request->input('nome_fantasia');
+            $empresa->razao_social = $request->input('razao_social');
+            $empresa->cnpj = $request->input('cnpj');
+            $empresa->sem_cnpj = $request->boolean('sem_cnpj');
+            $empresa->telefone = $request->input('telefone');
+            $empresa->descricao = $request->input('descricao');
+            $empresa->website = $request->input('website');
+            $empresa->youtube_video = $request->input('youtube_video');
+            $empresa->tipo_empresa = $request->input('tipo_empresa');
+            $empresa->ano_fundacao = $request->input('ano_fundacao');
+            $empresa->numero_funcionarios = $request->input('numero_funcionarios');
+            $empresa->politica_remoto = $request->input('politica_remoto');
+
+            $empresa->facebook = $request->input('facebook');
+            $empresa->twitter = $request->input('twitter');
+            $empresa->linkedin = $request->input('linkedin');
+            $empresa->instagram = $request->input('instagram');
+            $empresa->tiktok = $request->input('tiktok');
+            $empresa->youtube = $request->input('youtube');
+
+            $empresa->contato_nome = $request->input('contato_nome');
+            $empresa->contato_cargo = $request->input('contato_cargo');
+            $empresa->contato_telefone = $request->input('contato_telefone');
+            $empresa->como_encontrou = $request->input('como_encontrou');
+
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');   
+                $nomeArquivo = 'logo_' . time() . '.' . $logo->getClientOriginalExtension();
+                $logo->storeAs('public/logos', $nomeArquivo);
+                $empresa->logo_path = 'storage/logos/' . $nomeArquivo;
+            }
+
+            $empresa->save();
+
+            $requestEndereco = $request->input('endereco');
+            if ($empresa->endereco) {
+                $endereco = $empresa->endereco;
+            } else {
+                $endereco = new Endereco();
+                $endereco->enderecavel_type = Empresa::class;
+                $endereco->enderecavel_id = $empresa->id;
+            }
+            
+            $endereco->cep = $requestEndereco['cep'];
+            $endereco->estado = $requestEndereco['estado'];
+            $endereco->cidade = $requestEndereco['cidade'];
+            $endereco->bairro = $requestEndereco['bairro'];
+            $endereco->logradouro = $requestEndereco['logradouro'];
+            $endereco->numero = $requestEndereco['numero'];
+            $endereco->complemento = $requestEndereco['complemento'] ?? null;
+            
+            $endereco->save();
+
+            $usuario->nome = $empresa->nome_fantasia;
+            $usuario->save();
+
+            DB::commit();
+
+            LogSuccess::create([
+                'route' => $request->url(),
+                'success_message' => 'Empresa atualizada com sucesso',
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->success_response('Empresa atualizada.');
+        } catch (CustomException $exception) {
+            DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            DB::rollBack();
+
+            LogErrors::create([
+                'route' => $request->url(),
+                'error_message' => $exception->getMessage(),
+                'user_id' => Auth::id() ?? null
+            ]);
+
+            return $this->error_response('Erro ao atualizar empresa.', $exception->getMessage());
         }
     }
 }

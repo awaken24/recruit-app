@@ -14,4 +14,15 @@ class HabilidadeCandidato extends Model
         'habilidade_id',
         'experiencia',
     ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+        'id'
+    ];
+
+    public function habilidade()
+    {
+        return $this->belongsTo(Habilidade::class);
+    }
 }

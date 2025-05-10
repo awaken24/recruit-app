@@ -57,44 +57,6 @@ class Empresa extends Model
         return $this->hasOne(ConfiguracaoEmpresa::class);
     }
 
-    /**
-     * @return array
-     */
-    public function toArrayProfile()
-    {
-        return [
-            'id' => $this->id,
-            'nome_fantasia' => $this->nome_fantasia,
-            'razao_social' => $this->razao_social,
-            'cnpj' => $this->sem_cnpj ? 'Não possui CNPJ' : $this->cnpj,
-            'telefone' => $this->telefone,
-            'email' => $this->email,
-            'descricao' => $this->descricao,
-            'website' => $this->website,
-            'ano_fundacao' => $this->ano_fundacao,
-            'numero_funcionarios' => $this->numero_funcionarios,
-            'politica_remoto' => $this->politica_remoto,
-            'tipo_empresa' => $this->tipo_empresa,
-            'quantidade_vagas' => $this->vagas()->count(),
-            'redes_sociais' => [
-                'facebook' => $this->facebook,
-                'twitter' => $this->twitter,
-                'linkedin' => $this->linkedin,
-                'instagram' => $this->instagram,
-                'tiktok' => $this->tiktok,
-                'youtube' => $this->youtube,
-            ],
-            'logo_url' => $this->logo_path ? asset($this->logo_path) : null,
-            'contato' => [
-                'nome' => $this->contato_nome,
-                'cargo' => $this->contato_cargo,
-                'telefone' => $this->contato_telefone,
-            ],
-            'youtube_video' => $this->youtube_video,
-            'como_encontrou' => $this->como_encontrou
-        ];
-    }
-
     public function toArray()
     {
         $data = parent::toArray();
