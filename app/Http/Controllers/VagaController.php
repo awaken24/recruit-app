@@ -20,7 +20,7 @@ use App\Models\{
     Habilidade,
     LogErrors,
     LogSuccess,
-    candidatura
+    Candidatura
 };
 
 class VagaController extends BaseController
