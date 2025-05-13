@@ -57,4 +57,8 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
+
+    Route::get('check', function () {
+        return response()->json(['status' => 'ok'], 200);
+    })->middleware('auth:api');
 });
