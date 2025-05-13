@@ -33,7 +33,8 @@ class Candidato extends Model
         'tipo_empresa',
         'titulo',
         'trabalho_remoto',
-        'foto_perfil'
+        'foto_perfil',
+        'curriculo'
     ];
 
     public function endereco()

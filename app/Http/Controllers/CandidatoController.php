@@ -176,6 +176,13 @@ class CandidatoController extends BaseController
                 $candidato->foto_perfil = 'storage/logos/' . $nomeArquivo;
             }
 
+            if ($request->hasFile('curriculo')) {
+                $curriculo = $request->file('curriculo');
+                $nomeCurriculo = 'curriculo_' . time() . '.' . $curriculo->getClientOriginalExtension();
+                $caminhoCurriculo = $curriculo->storeAs('public/curriculos', $nomeCurriculo);
+                $candidato->curriculo = 'storage/curriculos/' . $nomeCurriculo;
+            }
+
             $candidato->save();
 
             $habilidades = json_decode($request->input('habilidades'), true);
@@ -402,9 +409,15 @@ class CandidatoController extends BaseController
                 $candidato->foto_perfil = 'storage/logos/' . $nomeArquivo;
             }
 
+            if ($request->hasFile('curriculo')) {
+                $curriculo = $request->file('curriculo');
+                $nomeCurriculo = 'curriculo_' . time() . '.' . $curriculo->getClientOriginalExtension();
+                $caminhoCurriculo = $curriculo->storeAs('public/curriculos', $nomeCurriculo);
+                $candidato->curriculo = 'storage/curriculos/' . $nomeCurriculo;
+            }
+
             $candidato->save();
 
-            // Atualizar habilidades
             HabilidadeCandidato::where('candidato_id', $candidato->id)->delete();
 
             $habilidades = json_decode($request->input('habilidades'), true);
