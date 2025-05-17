@@ -52,11 +52,16 @@ Route::get('/habilidades', [HabilidadeController::class, 'index']);
 Route::patch('/candidaturas/{id}/aprovar', [VagaController::class, 'aprovarCandidatura'])->middleware('auth:api');
 Route::patch('/candidaturas/{id}/reprovar', [VagaController::class, 'reprovarCandidatura'])->middleware('auth:api');
 
+Route::post('/auth/forgot-password', [AuthController::class, 'sendResetLink']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+
 Route::group(['prefix' => 'auth'], function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
+
+    Route::get('/validate-reset-token', [AuthController::class, 'validateResetToken']);
 
     Route::get('check', function () {
         return response()->json(['status' => 'ok'], 200);
