@@ -46,6 +46,8 @@ Route::get('/vagas', [VagaController::class, 'listagemVagas']);
 Route::get('/vagas/{vagaId}', [VagaController::class, 'show']);
 Route::post('/vagas/candidatura', [VagaController::class, 'candidatura'])->middleware('auth:api');
 Route::post('/vagas/gerenciar/{id}', [VagaController::class, 'gerenciar']);
+Route::post('/vagas/aproveitar-candidatura/{vagaId}', [VagaController::class, 'aproveitarOportunidade'])->middleware('auth:api');
+Route::post('/vagas/recusar-candidatura/{vagaId}', [VagaController::class, 'recusarOportunidade'])->middleware('auth:api');
 
 Route::get('/habilidades', [HabilidadeController::class, 'index']);
 
