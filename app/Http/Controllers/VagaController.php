@@ -20,7 +20,8 @@ use App\Models\{
     Habilidade,
     LogErrors,
     LogSuccess,
-    Candidatura
+    Candidatura,
+    Oportunidades
 };
 
 class VagaController extends BaseController
@@ -449,6 +450,62 @@ class VagaController extends BaseController
             return $this->error_response($exception->getMessage(), null, $exception->getCode());
         } catch(\Exception $exception) {
             return $this->error_response('Não foi possível aprovar a candidatura', $exception->getMessage(), 500);
+        }
+    }
+
+    public function aproveitarOportunidade($oportunidadeId)
+    {
+        DB::beginTransaction();
+        try {
+            $oportunidade = Oportunidades::findOrFail($oportunidadeId);
+        
+            if ($oportunidade->status !== 'pendente') {
+                throw new CustomException('Usuário não é uma empresa', 403);
+            }
+
+            $candidatura = Candidatura::create([
+                'vaga_id' => $oportunidade->vaga_id,
+                'candidato_id' => $oportunidade->candidato_id,
+                'empresa_id' => $oportunidade->vaga->empresa_id,
+                'status' => Candidatura::STATUS_PENDENTE,
+                'compatibilidade' => $oportunidade->compatibilidade
+            ]);
+
+            $oportunidade->status = 'transformada';
+            $oportunidade->save();
+            
+             DB::commit();
+            return $this->success_response('Oportunidade transformada em candidatura.', 200);
+        } catch(CustomException $exception) {
+            DB::rollBack();
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            return $this->error_response('Não foi possível transformar a oportunidade.', $exception->getMessage(), 500);
+        }
+    }
+
+    public function recusarOportunidade($oportunidadeId)
+    {
+        DB::beginTransaction();
+
+        try {
+            $oportunidade = Oportunidades::find($oportunidadeId);
+
+            if (!$oportunidade) {
+                throw new CustomException('Oportunidade não encontrada', 404);
+            }
+
+            $oportunidade->update(['status' => 'recusada']);
+
+            DB::commit();
+            return $this->success_response('Oportunidade recusada.', 200);
+        } catch(CustomException $exception) {
+            DB::rollBack();
+            return $this->error_response($exception->getMessage(), null, $exception->getCode());
+        } catch (\Exception $exception) {
+            DB::rollBack();
+            return $this->error_response('Erro ao recusar oportunidade', $exception->getMessage(), 500);
         }
     }
 }
